@@ -8,7 +8,7 @@ License-Url: http://www.eclipse.org/legal/epl-v10.html
 Vendor: Eclipse Foundation
 Cartridge-Version: 0.0.1
 Cartridge-Vendor: gorkem
-Source-Url: https://github.com/
+Source-Url: https://github.com/gorkem/openshift-cartridge-orion.git
 Categories:
   - web_framework
   - domain_scope
