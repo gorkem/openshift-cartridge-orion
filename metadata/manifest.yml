@@ -1,0 +1,45 @@
+Name: orion
+Cartridge-Short-Name: ORION
+Display-Name: Orion 5.0
+Description: "Orion is an open source platform for cloud based development"
+Version: '5.0'
+License: EPL 1.0
+License-Url: http://www.eclipse.org/legal/epl-v10.html
+Vendor: Eclipse Foundation
+Cartridge-Version: 0.0.1
+Cartridge-Vendor: gorkem
+Source-Url: https://github.com/
+Categories:
+  - web_framework
+  - domain_scope
+  - community
+  - development
+Website: http://www.eclipse.org/orion/
+Help-Topics:
+  "Developer Center": http://www.eclipse.org/orion/
+Subscribes:
+  set-env:
+    Type: ENV:*
+    Required: false
+Scaling:
+  Min: 1
+  Max: 1
+Endpoints:
+- Private-IP-Name: IP
+  Private-Port-Name: PORT
+  Private-Port: 8080
+  Public-Port-Name: PROXY_PORT
+  Protocols:
+  - http
+  Options:
+    primary: true
+  Mappings:
+  - Frontend: ''
+    Backend: ''
+  - Frontend: /health
+    Backend: ''
+    Options:
+      health: true
+Additional-Control-Actions:
+    - threaddump
+Install-Build-Required: false

@@ -1,0 +1,135 @@
+#!/bin/bash -e
+
+source $OPENSHIFT_CARTRIDGE_SDK_BASH
+
+ORION_PID_FILE=${OPENSHIFT_HOMEDIR}/app-root/runtime/orion.pid
+
+ORION_HOME=${OPENSHIFT_ORION_DIR}/usr/eclipse
+
+# Check if the orion server process is running
+function isrunning() {
+  if [ -f "$ORION_PID_FILE" ]; then
+    orpid=$(cat $ORION_PID_FILE);
+    if /bin/ps --pid $orpid 1>&2 >/dev/null;
+    then
+      return 0
+    fi
+  fi
+  return 1
+
+}
+
+# Kill the process given by $1 and its children
+killtree() {
+    local _pid=$1
+    for _child in $(ps -o pid --no-headers --ppid ${_pid}); do
+        killtree ${_child}
+    done
+
+    local should_be_gone_pid=$(ps -o pid -p ${_pid} --no-headers)
+    if [ -z $should_be_gone_pid ]; then
+        return
+    else
+        kill -TERM ${_pid}
+    fi
+
+    local count=0
+    while [ ${count} -lt 15 ]
+    do
+        local should_be_gone_pid=$(ps -o pid -p ${_pid} --no-headers)
+        if [ -z $should_be_gone_pid ]; then
+                return
+        else
+                sleep 2
+                let count=${count}+1
+        fi
+    done
+
+    local should_be_gone_pid=$(ps -o pid -p ${_pid} --no-headers)
+    if [ ! -z $should_be_gone_pid ]
+    then
+        kill -9 ${_pid}
+    fi
+}
+
+function stop() {
+  client_message "Stopping $cartridge_type cart"
+  
+  if isrunning; then
+		if [ -f "$ORION_PID_FILE" ]; then
+      pid=$(cat $ORION_PID_FILE);
+      echo "Sending SIGTERM to :$pid ..." 1>&2
+      killtree $pid
+      rm ${ORION_PID_FILE}
+    else 
+	    echo "Failed to locate ORION PID File" 1>&2
+	  fi
+  fi
+  return 0
+}
+
+function start() {
+  client_message "Starting $cartridge_type cart"
+
+  if isrunning; then
+      client_message "Application is already running"
+      return 0
+  fi
+
+  # Start up orion
+  pushd $OPENSHIFT_REPO_DIR > /dev/null
+
+    $ORION_HOME/orion -data $OPENSHIFT_DATA_DIR/orionserverws --launcher.ini $OPENSHIFT_ORION_DIR/bin/orion.ini -vmargs -Dorg.eclipse.equinox.http.jetty.http.port=$OPENSHIFT_ORION_PORT -Dorg.eclipse.equinox.http.jetty.http.host=$OPENSHIFT_ORION_IP > $OPENSHIFT_REPO_DIR/orion.log &
+
+    PROCESS_ID=$!
+    echo "$PROCESS_ID" > ${ORION_PID_FILE}
+  popd > /dev/null
+}
+
+function restart() {
+  client_message "Restarting $cartridge_type cart"
+  stop
+  start
+}
+
+function status() {
+  client_message "retrieving status for $cartridge_type cart"
+  if isrunning; then
+    client_result "Status: Application is running"
+  else
+    client_result "Status: Application is either stopped or inaccessible"
+  fi
+}
+
+# Clean up any log files
+function tidy() {
+  client_message "called tidy for orion server" 
+  shopt -s dotglob
+}
+
+function threaddump() {
+  client_message "Thread dump for $cartridge_type cartridge"
+
+  if ! isrunning; then
+    echo "Application is stopped"
+    exit 1
+  elif [ -f "$ORION_PID_FILE" ]; then
+    javapid=$(cat $ORION_PID_FILE);
+    kill -3 $javapid
+    client_result "Success"
+    client_result "The thread dump file will be available via:"
+    client_result "rhc tail $OPENSHIFT_APP_NAME -g $OPENSHIFT_GEAR_UUID -f $logf -o '-n 250'"
+  else
+   client_message "Failed to locate Orion PID File"
+  fi
+}
+
+case "$1" in
+  start)        start ;;
+  stop)         stop ;;
+  restart)      restart ;;
+  status)       status ;;
+  tidy)         tidy ;;
+  threaddump)   threaddump ;;
+  *)            exit 0
+esac

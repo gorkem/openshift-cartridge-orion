@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+#case "$1" in
+#  -v|--version)
+#    version="$2"
+#esac
+
+source $OPENSHIFT_CARTRIDGE_SDK_BASH
+
+client_message "running install for orion cartridge"
+
+orion_dist=R-5.0-201402262325
+
+if [ ! -d "$OPENSHIFT_ORION_DIR/usr/eclipse" ]; then
+  client_message "downloading orion package"
+  wget http://download.eclipse.org/orion/drops/R-5.0-201402262325/eclipse-orion-5.0-linux.gtk.x86_64.zip -O $OPENSHIFT_TMP_DIR/orion_dist.zip
+  client_message "orion package download complete"
+  unzip $OPENSHIFT_TMP_DIR/orion_dist.zip -d $OPENSHIFT_ORION_DIR/usr/
+  client_message "extracted orion package"
+fi
+client_message "Orion Server is installed successfully"
+
